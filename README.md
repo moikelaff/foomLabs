@@ -34,20 +34,22 @@ The server will start at `http://localhost:3001`
 - `GET /health` - Server health status
 
 ### Products
-- `GET /products` - List all products *(Coming soon)*
+- `GET /products` - List all products
 
 ### Stocks
-- `GET /stocks` - List stock levels with warehouse and product info *(Coming soon)*
+- `GET /stocks` - List stock levels with warehouse and product info
 
 ### Purchase Requests
-- `GET /purchase/request` - List all purchase requests *(Coming soon)*
-- `GET /purchase/request/:id` - Get single purchase request *(Coming soon)*
-- `POST /purchase/request` - Create new purchase request *(Coming soon)*
-- `PUT /purchase/request/:id` - Update purchase request *(Coming soon)*
-- `DELETE /purchase/request/:id` - Delete purchase request *(Coming soon)*
+- `GET /purchase/request` - List all purchase requests
+- `GET /purchase/request/:id` - Get single purchase request
+- `POST /purchase/request` - Create new purchase request
+- `PUT /purchase/request/:id` - Update purchase request (DRAFT only)
+- `DELETE /purchase/request/:id` - Delete purchase request (DRAFT only)
 
 ### Webhook
-- `POST /webhook/receive-stock` - Receive stock from supplier *(Coming soon)*
+- `POST /webhook/receive-stock` - Receive stock from supplier
+
+See `API_DOCUMENTATION.md` for detailed endpoint documentation.
 
 ## Database Schema
 
@@ -105,18 +107,41 @@ backend/
 
 ## Design Decisions
 
-*(To be documented as development progresses)*
+### Architecture
+- **MVC Pattern**: Separation of concerns with Routes → Controllers → Services → Models
+- **Transaction-based operations**: All write operations use database transactions for data consistency
+- **Idempotency**: Webhook endpoint checks for duplicate processing to prevent double stock allocation
+
+### Status Flow
+Purchase requests follow a strict status flow:
+- **DRAFT**: Initial state, allows updates and deletion
+- **PENDING**: Triggered external API notification, awaiting stock delivery
+- **COMPLETED**: Stock received and allocated to warehouse
+
+### Reference Generation
+Auto-generated purchase request references (PR00001, PR00002...) ensure unique identification and tracking.
+
+### Error Handling
+- Input validation middleware on all endpoints
+- Consistent error response format with status codes
+- Detailed stack traces in development mode
+- Transaction rollback on failures
+
+### External Integration
+- Hub API integration on status change (DRAFT → PENDING)
+- Graceful handling of external API failures with transaction rollback
 
 ## Future Improvements
 
 - Authentication & Authorization (JWT)
-- Request validation middleware
 - API rate limiting
-- Comprehensive error handling
 - Unit and integration tests
-- API documentation (Swagger)
-- Logging system (Winston)
+- API documentation with Swagger/OpenAPI
+- Logging system (Winston/Pino)
 - Database connection pooling optimization
+- Pagination for list endpoints
+- Filtering and sorting capabilities
+- Audit trail for status changes
 
 ## License
 
