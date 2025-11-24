@@ -7,11 +7,13 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "node --watch src/app.js",
-    "db:migrate": "npx sequelize-cli db:migrate",
-    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "db:seed": "npx sequelize-cli db:seed:all",
-    "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
-    "db:reset": "npx sequelize-cli db:migrate:undo:all && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all"
+    "db:create": "node src/scripts/createDb.js",
+    "db:migrate": "npx sequelize-cli db:migrate --migrations-path src/migrations",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo --migrations-path src/migrations",
+    "db:seed": "npx sequelize-cli db:seed:all --seeders-path src/seeders",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo:all --seeders-path src/seeders",
+    "db:setup": "npm run db:create && npm run db:migrate && npm run db:seed",
+    "db:reset": "npx sequelize-cli db:migrate:undo:all --migrations-path src/migrations && npm run db:migrate && npm run db:seed"
   },
   "keywords": [
     "inventory",

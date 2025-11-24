@@ -16,64 +16,7 @@ Backend API for managing inventory allocation across warehouses with purchase re
 - PostgreSQL (v14 or higher)
 - npm or yarn
 
-## Installation
-
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd backend
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Setup environment variables
-
-Copy `.env.example` to `.env` and configure your settings:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your database credentials:
-
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=inventory_db
-DB_USER=postgres
-DB_PASSWORD=your_password
-
-PORT=3001
-NODE_ENV=development
-```
-
-### 4. Create database
-
-```bash
-# Using psql
-psql -U postgres
-CREATE DATABASE inventory_db;
-\q
-```
-
-### 5. Run database migrations
-
-```bash
-npm run db:migrate
-```
-
-### 6. Seed sample data (optional)
-
-```bash
-npm run db:seed
-```
-
-### 7. Start the server
+### Start the server
 
 ```bash
 # Development (with auto-reload)
@@ -91,20 +34,22 @@ The server will start at `http://localhost:3001`
 - `GET /health` - Server health status
 
 ### Products
-- `GET /products` - List all products *(Coming soon)*
+- `GET /products` - List all products
 
 ### Stocks
-- `GET /stocks` - List stock levels with warehouse and product info *(Coming soon)*
+- `GET /stocks` - List stock levels with warehouse and product info
 
 ### Purchase Requests
-- `GET /purchase/request` - List all purchase requests *(Coming soon)*
-- `GET /purchase/request/:id` - Get single purchase request *(Coming soon)*
-- `POST /purchase/request` - Create new purchase request *(Coming soon)*
-- `PUT /purchase/request/:id` - Update purchase request *(Coming soon)*
-- `DELETE /purchase/request/:id` - Delete purchase request *(Coming soon)*
+- `GET /purchase/request` - List all purchase requests
+- `GET /purchase/request/:id` - Get single purchase request
+- `POST /purchase/request` - Create new purchase request
+- `PUT /purchase/request/:id` - Update purchase request (DRAFT only)
+- `DELETE /purchase/request/:id` - Delete purchase request (DRAFT only)
 
 ### Webhook
-- `POST /webhook/receive-stock` - Receive stock from supplier *(Coming soon)*
+- `POST /webhook/receive-stock` - Receive stock from supplier
+
+See `API_DOCUMENTATION.md` for detailed endpoint documentation.
 
 ## Database Schema
 
@@ -162,18 +107,41 @@ backend/
 
 ## Design Decisions
 
-*(To be documented as development progresses)*
+### Architecture
+- **MVC Pattern**: Separation of concerns with Routes → Controllers → Services → Models
+- **Transaction-based operations**: All write operations use database transactions for data consistency
+- **Idempotency**: Webhook endpoint checks for duplicate processing to prevent double stock allocation
+
+### Status Flow
+Purchase requests follow a strict status flow:
+- **DRAFT**: Initial state, allows updates and deletion
+- **PENDING**: Triggered external API notification, awaiting stock delivery
+- **COMPLETED**: Stock received and allocated to warehouse
+
+### Reference Generation
+Auto-generated purchase request references (PR00001, PR00002...) ensure unique identification and tracking.
+
+### Error Handling
+- Input validation middleware on all endpoints
+- Consistent error response format with status codes
+- Detailed stack traces in development mode
+- Transaction rollback on failures
+
+### External Integration
+- Hub API integration on status change (DRAFT → PENDING)
+- Graceful handling of external API failures with transaction rollback
 
 ## Future Improvements
 
 - Authentication & Authorization (JWT)
-- Request validation middleware
 - API rate limiting
-- Comprehensive error handling
 - Unit and integration tests
-- API documentation (Swagger)
-- Logging system (Winston)
+- API documentation with Swagger/OpenAPI
+- Logging system (Winston/Pino)
 - Database connection pooling optimization
+- Pagination for list endpoints
+- Filtering and sorting capabilities
+- Audit trail for status changes
 
 ## License
 

@@ -1,6 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import './models/index.js';
+import productRoutes from './routes/products.js';
+import stockRoutes from './routes/stocks.js';
+import purchaseRequestRoutes from './routes/purchaseRequests.js';
+import webhookRoutes from './routes/webhook.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,11 +30,11 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes will be added here
-// app.use('/products', productRoutes);
-// app.use('/stocks', stockRoutes);
-// app.use('/purchase/request', purchaseRequestRoutes);
-// app.use('/webhook', webhookRoutes);
+// API routes
+app.use('/products', productRoutes);
+app.use('/stocks', stockRoutes);
+app.use('/purchase/request', purchaseRequestRoutes);
+app.use('/webhook', webhookRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -46,10 +51,18 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   
-  res.status(err.status || 500).json({
+  const statusCode = err.status || 500;
+  const message = err.message || 'Internal server error';
+  
+  // Log detailed error in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Stack trace:', err.stack);
+  }
+  
+  res.status(statusCode).json({
     success: false,
     error: {
-      message: err.message || 'Internal server error',
+      message,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     }
   });
