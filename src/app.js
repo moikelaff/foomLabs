@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import './models/index.js';
 import productRoutes from './routes/products.js';
 import stockRoutes from './routes/stocks.js';
+import purchaseRequestRoutes from './routes/purchaseRequests.js';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +32,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/products', productRoutes);
 app.use('/stocks', stockRoutes);
+app.use('/purchase/request', purchaseRequestRoutes);
 
 // 404 handler
 app.use((req, res) => {
