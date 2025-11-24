@@ -4,9 +4,9 @@ async function updateStatus() {
   try {
     await PurchaseRequest.update(
       { status: 'PENDING' },
-      { where: { id: 2 } }
+      { where: { id: 3 } }
     );
-    console.log('✅ Updated purchase request 2 to PENDING status');
+    console.log('✅ Updated purchase request 3 (PR00002) to PENDING status');
     process.exit(0);
   } catch (error) {
     console.error('❌ Error:', error.message);
