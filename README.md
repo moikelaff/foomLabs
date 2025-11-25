@@ -71,12 +71,23 @@ Frontend runs on `http://localhost:3000`
 
 ### 4. Test Webhook Integration
 
-The external supplier webhook endpoint is available at:
-```
-POST http://localhost:3001/webhook/receive-stock
-```
+**Testing the complete flow:**
 
-Use the external hub URL `hub.foomid.id` to simulate stock delivery webhooks.
+1. Create a purchase request with vendor "PT FOOM LAB GLOBAL" (this triggers success flow)
+2. Change status from DRAFT to PENDING
+3. Backend automatically sends to `hub.foomid.id/api/request/purchase`
+4. External system will respond with webhooks (30s delay, then 60s delay)
+5. Your backend receives stock delivery webhook at `/webhook/receive-stock`
+
+**Manual webhook test (simulating external delivery):**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:3001/webhook/receive-stock" -Method POST -ContentType "application/json" -Body '{
+  "reference": "PR-20251125-0001",
+  "items": [
+    {"product_id": 1, "quantity": 50}
+  ]
+}'
+```
 
 ## Project Structure
 
@@ -119,10 +130,41 @@ foomLabs/
 - **COMPLETED**: Stock received, automatically updated via incoming webhook
 
 When status changes from DRAFT → PENDING:
-1. Backend sends webhook to external hub (`hub.foomid.id`)
-2. External system processes order
-3. External system sends delivery webhook back
+1. Backend sends purchase request to external hub (`hub.foomid.id/api/request/purchase`)
+2. External system processes order based on vendor:
+   - If vendor is "PT FOOM LAB GLOBAL": Receives REQUEST_CONFIRM (30s) → DONE (60s)
+   - Any other vendor: Receives REQUEST_REJECTED (30s)
+3. External system sends delivery webhook back to our backend
 4. Backend updates stock and marks request as COMPLETED
+
+**Outgoing Webhook Payload (DRAFT → PENDING):**
+```json
+{
+  "vendor": "PT FOOM LAB GLOBAL",
+  "reference": "PR-20251125-0001",
+  "qty_total": 20,
+  "details": [
+    {
+      "product_name": "Laptop",
+      "sku_barcode": "LAP001",
+      "qty": 10
+    }
+  ]
+}
+```
+
+**Incoming Webhook (Stock Delivery):**
+```json
+{
+  "reference": "PR-20251125-0001",
+  "items": [
+    {
+      "product_id": 1,
+      "quantity": 10
+    }
+  ]
+}
+```
 
 ### 4. Stock Management
 - Stock tracked per warehouse + product combination

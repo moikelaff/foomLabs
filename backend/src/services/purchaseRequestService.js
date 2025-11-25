@@ -232,12 +232,19 @@ export const updatePurchaseRequest = async (id, data) => {
       purchaseRequest.status = 'PENDING';
       await purchaseRequest.save({ transaction });
 
-      // Fetch updated data with items for API call
+      // Fetch updated data with items AND product details for API call
       const updatedPR = await PurchaseRequest.findByPk(id, {
         include: [
           {
             model: PurchaseRequestItem,
-            as: 'items'
+            as: 'items',
+            include: [
+              {
+                model: Product,
+                as: 'product',
+                attributes: ['id', 'name', 'sku']
+              }
+            ]
           }
         ],
         transaction
