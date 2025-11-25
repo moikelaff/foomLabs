@@ -33,14 +33,18 @@ cd foomLabs
 
 ```bash
 cd backend
+
+# The project uses a unified .env.example in the root folder
+# Copy it and configure your database credentials
+cp ../.env.example .env
+# Edit .env with your Supabase PostgreSQL credentials:
+# DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+
 npm install
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials
-
-# Setup database (creates DB, runs migrations, seeds data)
-npm run db:setup
+# Setup database (creates tables and seeds data)
+npm run db:migrate
+npm run db:seed
 
 # Start backend server
 npm run dev
@@ -52,11 +56,12 @@ Backend runs on `http://localhost:3001`
 
 ```bash
 cd frontend
-npm install
 
-# Configure environment variables
-cp .env.example .env.local
-# Ensure NEXT_PUBLIC_API_URL=http://localhost:3001
+# Copy the unified .env.example from root
+cp ../.env.example .env.local
+# The NEXT_PUBLIC_API_URL is already configured
+
+npm install
 
 # Start frontend server
 npm run dev
