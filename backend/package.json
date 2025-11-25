@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "node --watch src/app.js",
+    "dev": "set PORT=3012 && node --watch src/app.js",
     "db:create": "node src/scripts/createDb.js",
     "db:migrate": "npx sequelize-cli db:migrate --migrations-path src/migrations",
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo --migrations-path src/migrations",

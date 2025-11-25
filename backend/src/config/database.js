@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const sequelize = new Sequelize({
-  database: process.env.DB_NAME || 'inventory_db',
+  database: process.env.DB_NAME || 'postgres',
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   host: process.env.DB_HOST || 'localhost',
@@ -12,10 +12,10 @@ const sequelize = new Sequelize({
   dialect: 'postgres',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   dialectOptions: {
-    ssl: process.env.DB_HOST?.includes('supabase') ? {
+    ssl: {
       require: true,
       rejectUnauthorized: false
-    } : false
+    }
   },
   pool: {
     max: 5,

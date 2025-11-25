@@ -1,148 +1,255 @@
-# Inventory Allocation System - Backend API
+# Inventory Allocation System
 
-Backend API for managing inventory allocation across warehouses with purchase request planning and webhook integration.
+Full-stack inventory management system for managing stock across warehouses, purchase requests, and webhook integration with external suppliers.
 
 ## Tech Stack
 
-- **Runtime**: Node.js (ES Modules)
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **ORM**: Sequelize
-- **Architecture**: MVC Pattern (Routes → Controllers → Services → Models)
+**Backend:**
+- Node.js (ES Modules) + Express.js
+- PostgreSQL + Sequelize ORM
+- MVC Architecture (Routes → Controllers → Services → Models)
+
+**Frontend:**
+- Next.js 16 (App Router) + TypeScript
+- React 19 + Tailwind CSS v4
+- Headless UI for accessible components
 
 ## Prerequisites
 
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
+- Node.js v18+
+- PostgreSQL v14+
 - npm or yarn
 
-### Start the server
+## How to Run Locally
+
+### 1. Clone the repository
 
 ```bash
-# Development (with auto-reload)
-npm run dev
-
-# Production
-npm start
+git clone <repository-url>
+cd foomLabs
 ```
 
-The server will start at `http://localhost:3001`
-
-## API Endpoints
-
-### Health Check
-- `GET /health` - Server health status
-
-### Products
-- `GET /products` - List all products
-
-### Stocks
-- `GET /stocks` - List stock levels with warehouse and product info
-
-### Purchase Requests
-- `GET /purchase/request` - List all purchase requests
-- `GET /purchase/request/:id` - Get single purchase request
-- `POST /purchase/request` - Create new purchase request
-- `PUT /purchase/request/:id` - Update purchase request (DRAFT only)
-- `DELETE /purchase/request/:id` - Delete purchase request (DRAFT only)
-
-### Webhook
-- `POST /webhook/receive-stock` - Receive stock from supplier
-
-See `API_DOCUMENTATION.md` for detailed endpoint documentation.
-
-## Database Schema
-
-### Tables
-- **warehouses**: Warehouse locations
-- **products**: Product catalog with SKU
-- **stocks**: Stock levels per warehouse/product
-- **purchase_requests**: Purchase planning records
-- **purchase_request_items**: Line items for purchase requests
-
-See `PROJECT_DOCUMENTATION.md` in the root folder for detailed schema.
-
-## Development Scripts
+### 2. Backend Setup
 
 ```bash
-# Start server with auto-reload
-npm run dev
+cd backend
 
-# Run migrations
+# The project uses a unified .env.example in the root folder
+# Copy it and configure your database credentials
+cp ../.env.example .env
+# Edit .env with your Supabase PostgreSQL credentials:
+# DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+
+npm install
+
+# Setup database (creates tables and seeds data)
 npm run db:migrate
-
-# Undo last migration
-npm run db:migrate:undo
-
-# Seed database
 npm run db:seed
 
-# Undo all seeds
-npm run db:seed:undo
+# Start backend server
+npm run dev
+```
 
-# Reset database (undo all, migrate, seed)
-npm run db:reset
+Backend runs on `http://localhost:3012`
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+
+# Copy the unified .env.example from root
+cp ../.env.example .env.local
+# The NEXT_PUBLIC_API_URL is already configured
+
+npm install
+
+# Start frontend server
+npm run dev
+```
+
+Frontend runs on `http://localhost:3011`
+
+### 4. Test Webhook Integration
+
+**Testing the complete flow:**
+
+1. Create a purchase request with vendor "PT FOOM LAB GLOBAL" (this triggers success flow)
+2. Change status from DRAFT to PENDING
+3. Backend automatically sends to `hub.foomid.id/api/request/purchase`
+4. External system will respond with webhooks (30s delay, then 60s delay)
+5. Your backend receives stock delivery webhook at `/webhook/receive-stock`
+
+**Manual webhook test (simulating external delivery):**
+```powershell
+Invoke-RestMethod -Uri "http://localhost:3012/webhook/receive-stock" -Method POST -ContentType "application/json" -Body '{
+  "reference": "PR-20251125-0001",
+  "items": [
+    {"product_id": 1, "quantity": 50}
+  ]
+}'
 ```
 
 ## Project Structure
 
 ```
-backend/
-├── src/
-│   ├── config/          # Database and app configuration
-│   ├── models/          # Sequelize models
-│   ├── migrations/      # Database migrations
-│   ├── seeders/         # Sample data
-│   ├── services/        # Business logic
-│   ├── controllers/     # Request handlers
-│   ├── routes/          # API routes
-│   ├── middlewares/     # Custom middleware
-│   ├── utils/           # Helper functions
-│   └── app.js           # Express application
-├── .env.example         # Environment template
-├── .gitignore
-├── package.json
-└── README.md
+foomLabs/
+├── backend/
+│   ├── src/
+│   │   ├── controllers/     # Request handlers
+│   │   ├── services/        # Business logic
+│   │   ├── models/          # Sequelize models
+│   │   ├── routes/          # API routes
+│   │   ├── migrations/      # Database migrations
+│   │   ├── seeders/         # Sample data
+│   │   └── utils/           # Helpers (hubApi, reference generator)
+│   └── package.json
+└── frontend/
+    ├── app/                 # Next.js pages (App Router)
+    ├── components/          # Reusable UI components
+    ├── lib/                 # API client, types
+    └── package.json
 ```
 
-## Design Decisions
+## Core Design Decisions
 
-### Architecture
-- **MVC Pattern**: Separation of concerns with Routes → Controllers → Services → Models
-- **Transaction-based operations**: All write operations use database transactions for data consistency
-- **Idempotency**: Webhook endpoint checks for duplicate processing to prevent double stock allocation
+### 1. Purchase Request Reference Generation
+- Format: `PR-YYYYMMDD-XXXX` (e.g., `PR-20251125-0001`)
+- Generated server-side to ensure uniqueness
+- Daily counter resets automatically
+- Used as idempotency key for webhook processing
 
-### Status Flow
-Purchase requests follow a strict status flow:
-- **DRAFT**: Initial state, allows updates and deletion
-- **PENDING**: Triggered external API notification, awaiting stock delivery
-- **COMPLETED**: Stock received and allocated to warehouse
+### 2. Webhook Idempotency
+- Uses purchase request `reference` as unique identifier
+- Prevents duplicate stock updates from repeated webhook calls
+- Returns 200 OK with message if reference already processed
+- Validates reference format before processing
 
-### Reference Generation
-Auto-generated purchase request references (PR00001, PR00002...) ensure unique identification and tracking.
+### 3. Status Workflow
+- **DRAFT**: Editable/deletable, local only
+- **PENDING**: Submitted to external system via webhook, read-only
+- **COMPLETED**: Stock received, automatically updated via incoming webhook
 
-### Error Handling
-- Input validation middleware on all endpoints
-- Consistent error response format with status codes
-- Detailed stack traces in development mode
-- Transaction rollback on failures
+When status changes from DRAFT → PENDING:
+1. Backend sends purchase request to external hub (`hub.foomid.id/api/request/purchase`)
+2. External system processes order based on vendor:
+   - If vendor is "PT FOOM LAB GLOBAL": Receives REQUEST_CONFIRM (30s) → DONE (60s)
+   - Any other vendor: Receives REQUEST_REJECTED (30s)
+3. External system sends delivery webhook back to our backend
+4. Backend updates stock and marks request as COMPLETED
 
-### External Integration
-- Hub API integration on status change (DRAFT → PENDING)
-- Graceful handling of external API failures with transaction rollback
+**Outgoing Webhook Payload (DRAFT → PENDING):**
+```json
+{
+  "vendor": "PT FOOM LAB GLOBAL",
+  "reference": "PR-20251125-0001",
+  "qty_total": 20,
+  "details": [
+    {
+      "product_name": "Laptop",
+      "sku_barcode": "LAP001",
+      "qty": 10
+    }
+  ]
+}
+```
 
-## Future Improvements
+**Incoming Webhook (Stock Delivery):**
+```json
+{
+  "reference": "PR-20251125-0001",
+  "items": [
+    {
+      "product_id": 1,
+      "quantity": 10
+    }
+  ]
+}
+```
 
-- Authentication & Authorization (JWT)
-- API rate limiting
-- Unit and integration tests
-- API documentation with Swagger/OpenAPI
-- Logging system (Winston/Pino)
-- Database connection pooling optimization
-- Pagination for list endpoints
-- Filtering and sorting capabilities
-- Audit trail for status changes
+### 4. Stock Management
+- Stock tracked per warehouse + product combination
+- Quantities updated automatically when webhook receives stock
+- No manual stock adjustments (audit trail via purchase requests)
+
+### 5. API Architecture
+- Service layer handles all business logic (validation, reference generation, hub API calls)
+- Controllers handle HTTP concerns only
+- Models define database structure and relationships
+- Clear separation enables easier testing and maintenance
+
+### 6. Frontend State Management
+- Server-side data fetching with client-side interactions
+- Real-time updates via re-fetching after mutations
+- Optimistic UI disabled to prevent sync issues
+- Error boundaries for graceful error handling
+
+## API Endpoints
+
+### Products
+- `GET /products` - List all products
+
+### Stocks
+- `GET /stocks` - List stock levels across warehouses
+
+### Purchase Requests
+- `GET /purchase/request` - List all requests
+- `GET /purchase/request/:id` - Get single request
+- `POST /purchase/request` - Create new request (status: DRAFT)
+- `PUT /purchase/request/:id` - Update request (DRAFT only)
+- `DELETE /purchase/request/:id` - Delete request (DRAFT only)
+
+### Webhook
+- `POST /webhook/receive-stock` - Receive stock delivery from supplier
+
+## Database Schema
+
+**Tables:**
+- `warehouses` - Warehouse locations (id, name, location)
+- `products` - Product catalog (id, name, sku, description)
+- `stocks` - Stock levels (id, warehouse_id, product_id, quantity)
+- `purchase_requests` - Purchase planning (id, reference, warehouse_id, vendor, status, timestamps)
+- `purchase_request_items` - Line items (id, purchase_request_id, product_id, quantity)
+
+**Relationships:**
+- Stock belongs to Warehouse and Product
+- PurchaseRequest belongs to Warehouse, has many PurchaseRequestItems
+- PurchaseRequestItem belongs to PurchaseRequest and Product
+
+## Possible Improvements
+
+### Backend
+- **Authentication & Authorization**: JWT-based auth for user roles (admin, warehouse manager)
+- **Testing**: Unit tests for services, integration tests for endpoints
+- **Pagination**: Add pagination to list endpoints for better performance
+- **Filtering & Sorting**: Query parameters for advanced data filtering
+- **Logging**: Structured logging with Winston/Pino for debugging and monitoring
+- **Rate Limiting**: Prevent API abuse with request throttling
+- **Swagger Documentation**: Auto-generated API docs with OpenAPI spec
+- **Audit Trail**: Track all changes to purchase requests and stock levels
+- **Email Notifications**: Alert stakeholders on status changes
+- **Validation Improvements**: More robust input validation with Joi/Yup
+
+### Frontend
+- **Authentication UI**: Login/logout flows with protected routes
+- **Advanced Filtering**: Filter purchase requests by status, date, warehouse
+- **Sorting**: Sortable table columns
+- **Search**: Full-text search across products and requests
+- **Real-time Updates**: WebSocket integration for live stock updates
+- **Export**: Download reports as CSV/PDF
+- **Mobile Responsive**: Optimize layout for mobile devices
+- **Dark Mode**: Theme toggle for better UX
+- **Form Validation**: Client-side validation with react-hook-form + zod
+- **Caching**: SWR or React Query for better data caching
+- **Performance**: Code splitting, lazy loading, image optimization
+
+### DevOps
+- **Docker**: Containerize both backend and frontend
+- **CI/CD**: GitHub Actions for automated testing and deployment
+- **Environment Management**: Separate configs for dev/staging/prod
+- **Database Backups**: Automated backup strategy
+- **Monitoring**: APM tools (New Relic, Datadog) for performance tracking
 
 ## License
 
 ISC
+
