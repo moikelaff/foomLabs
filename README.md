@@ -50,7 +50,7 @@ npm run db:seed
 npm run dev
 ```
 
-Backend runs on `http://localhost:3001`
+Backend runs on `http://localhost:3012`
 
 ### 3. Frontend Setup
 
@@ -67,7 +67,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:3000`
+Frontend runs on `http://localhost:3011`
 
 ### 4. Test Webhook Integration
 
@@ -81,7 +81,7 @@ Frontend runs on `http://localhost:3000`
 
 **Manual webhook test (simulating external delivery):**
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:3001/webhook/receive-stock" -Method POST -ContentType "application/json" -Body '{
+Invoke-RestMethod -Uri "http://localhost:3012/webhook/receive-stock" -Method POST -ContentType "application/json" -Body '{
   "reference": "PR-20251125-0001",
   "items": [
     {"product_id": 1, "quantity": 50}
